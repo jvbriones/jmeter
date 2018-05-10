@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="4.0" jmeter="4.0 r1823414">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="fields" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">name;capital;currencies</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+                <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                <stringProp name="Argument.name">fields</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">restcountries.eu</stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path">/rest/v2/all</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="get listCountries" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">listCountries</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">-1</stringProp>
+          </JSONPostProcessor>
+          <hashTree/>
+        </hashTree>
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="generate Apartments random info" enabled="true">
+          <stringProp name="BeanShellSampler.query">/** Apartments info generator.
+ *  For each capital generates a dataset of randomised apartments.
+*/
+
+import org.json.*;
+import java.util.Random;
+import java.time.LocalDate;
+
+Random random = new Random();
+//Get from the previous http request an array with all the countries
+String stringCountries = vars.get(&quot;listCountries_1&quot;);
+JSONArray arrayCountries = new JSONArray(stringCountries);
+
+/**
+ * Generates an Address with random strings and letters, no special characters. 
+ * @return a String containing the generated address
+ */
+String generateAddress(){ 
+	String address = new String();
+	for (int i = 0; i &lt; 20; i++){ //20 characters lengh
+	  	char c = (char)(random.nextInt(&apos;z&apos; - &apos;a&apos;) + &apos;a&apos;);
+		address += c;
+	}
+    	int pos = random.nextInt(address.length()) + 1;
+	return address.substring(0, pos) + &quot; &quot; + address.substring(pos);
+}
+
+/**
+ * Creates an Apartment unit with random information.
+ * @TODO: The data should be built using the common regex patterns.
+ * 
+ * @param  apartment_id  the id of the apartment
+ * @return a JSON object containing the apartment info
+ */
+JSONObject createApartmentInfo(String apartment_id){ 
+     JSONObject japartment = new JSONObject();
+     japartment.put(&quot;apartmentName&quot;, apartment_id);
+     japartment.put(&quot;apartmentPrice&quot;, (100000 + random.nextInt(900000)));
+     japartment.put(&quot;apartmentAdress&quot;, generateAddress());
+     japartment.put(&quot;apartmentSize,&quot;, (random.nextInt(500) + 30));
+     
+     String[] appartmentType = {&quot;Sale&quot;, &quot;Rental&quot;, &quot;Both&quot;};
+     int idx = random.nextInt(appartmentType.length);
+     japartment.put(&quot;apartmentType&quot;, appartmentType[idx]);
+     
+     LocalDate constructionDate = LocalDate.now().minusDays(random.nextInt(5000) + 1); // up to 14 years old from today
+     japartment.put(&quot;constructionDate&quot;, constructionDate);
+	return japartment;
+} 
+
+
+// Run over all the cities and create a list of random apartments
+for (int i = 0; i &lt; arrayCountries.length(); i++){
+	JSONObject jcountry = arrayCountries.getJSONObject(i);
+	
+	//To improve readability
+	jcountry.put(&quot;country&quot;, jcountry.get(&quot;name&quot;));
+	jcountry.remove(&quot;name&quot;);
+	
+	//Create an array with some apartments and attach it to the city
+	JSONArray arrayApartments = new JSONArray();
+	int n_apartments = random.nextInt(3) + 1; //up to 3
+	for (int j = 0; j &lt; n_apartments; j++){
+		String apartment_id = jcountry.getString(&quot;capital&quot;) + &quot;_&quot; + i+j; // e.g. Madrid_23
+		arrayApartments.put(createApartmentInfo(apartment_id));
+	}
+
+	jcountry.put(&quot;apartments&quot;, arrayApartments);
+	//log.info(jcountry.toString());
+}
+
+vars.put(&quot;listCountries_1&quot;, arrayCountries.toString());
+</stringProp>
+          <stringProp name="BeanShellSampler.filename"></stringProp>
+          <stringProp name="BeanShellSampler.parameters"></stringProp>
+          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
+        </BeanShellSampler>
+        <hashTree/>
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="generate Apartment lists" enabled="true">
+          <stringProp name="BeanShellSampler.query">/** Retreive information from different web services to update the apartments information,
+ *  and generates 2 lists with the Recommended and Good Investment ones.
+ *  
+*/
+
+import org.json.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.Charset;
+
+
+//Get from the previous steps the array with all the cities and apartments
+String stringCountries = vars.get(&quot;listCountries_1&quot;);
+JSONArray arrayCountries = new JSONArray(stringCountries);
+JSONArray jRecommendedApartments = new JSONArray();
+JSONArray jGoodInvestmentApartments = new JSONArray();
+
+
+/**
+ * Builds the string from an input stream.
+ * @param  rd  BufferedReader object containing the stream
+ * @return a String containing the stream
+ */
+String readAll(Reader rd) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    int cp;
+    while ((cp = rd.read()) != -1) {
+      sb.append((char) cp);
+    }
+    return sb.toString();
+}
+
+/**
+ * Performs an Http request to the given url and retreive the Json response.
+ * @param  url  url with the resource to retreive
+ * @return a JSON object containing the response
+ */
+JSONObject getJsonFromAPI(String url) throws IOException, JSONException {
+	JSONObject janswer = new JSONObject();
+	try {
+	 	InputStream is = new URL(url).openStream();
+      	BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName(&quot;UTF-8&quot;)));
+      	String jsonText = readAll(rd);
+      	janswer = new JSONObject(jsonText);
+      	is.close();
+	} catch(Exception e) {
+    		log.warn(&quot;getJsonFromAPI(!) missing parameter?,cannot retreive JSON object from the given url: &quot; + url);
+    		return new JSONObject();
+	} 
+    	return janswer;
+}
+
+/**
+ * Get the weather info from the server and update apartments info. Assuming openweathermap.org format
+ * 
+ * @param  jcountry Json object containing full informtion about the apartments
+ */
+void addWeatherfromOpenWeather(JSONObject jcountry) throws IOException, JSONException {	
+	String baseurl = &quot;http://api.openweathermap.org&quot;;
+	String path = &quot;/data/2.5/weather&quot;;
+	String apikey = &quot;&amp;APPID=599c62d51ee4042cec4c0251e64cf551&quot;; // personal key, generate new one if needed
+	String city = jcountry.getString(&quot;capital&quot;);
+	String url = baseurl + path + &quot;?q=&quot; + city + apikey;
+	JSONObject jCityWeather = getJsonFromAPI(url);
+
+	// In case it is not possible to retreive the City info:
+	if (jCityWeather.has(&quot;weather&quot;) == false){
+		JSONObject noInfo = new JSONObject();
+		noInfo.put(&quot;main&quot;, &quot;unknow&quot;);
+		JSONArray weatherArray = new JSONArray();
+		weatherArray.put(noInfo);
+		jcountry.put(&quot;weather&quot;, weatherArray);
+	} else{
+		jcountry.put(&quot;weather&quot;, jCityWeather.getJSONArray(&quot;weather&quot;));
+	}
+}
+
+/**
+ * Get the currencies info from the server and update apartments info. Assuming fixer.io format
+ * 
+ * @param  jcountry Json object containing full informtion about the apartments
+ */
+void addEuroConversionfromFixer(JSONObject jcountry) throws IOException, JSONException {
+	String baseurl = &quot;http://data.fixer.io&quot;;
+	String path = &quot;/api/convert&quot;;
+	String apikey = &quot;access_key=82c18ae1e55684c6836d62cd56c39931&quot;; // personal key, generate new one if needed
+	
+	for (apartment : jcountry.getJSONArray(&quot;apartments&quot;)){
+		try {
+			String code = jcountry.getJSONArray(&quot;currencies&quot;).getJSONObject(0).getString(&quot;code&quot;);
+			int amount = apartment.getInt(&quot;apartmentPrice&quot;);
+			String url = baseurl + path + &quot;?&quot; + apikey + &quot;&amp;from=&quot; + code + &quot;&amp;to=EUR&amp;amount=&quot; + amount;
+			JSONObject jconversion = getJsonFromAPI(url);
+
+			//(!) With the free APIkey is not possible to retreive the conversion directly:
+			//log.info(jconversion.toString());
+			//--&gt; {&quot;success&quot;:false,&quot;error&quot;:{&quot;code&quot;:105,&quot;type&quot;:&quot;function_access_restricted&quot;,&quot;info&quot;:&quot;Access Restricted - 
+			//Your current Subscription Plan does not support this API Function.&quot;}}
+			// Otherwise the following code would habe been valid
+			if ((jconversion.has(&quot;success&quot;) == true) &amp;&amp; (jconversion.get(&quot;success&quot;) == true)){
+				Double result = jconversion.getDouble(&quot;result&quot;);
+				apartment.put(&quot;apartmentPrice&quot;, result);
+				apartment.put(&quot;convertedFrom&quot;, code);
+			}else{
+				apartment.put(&quot;convertedFrom&quot;, &quot;unableToConvert&quot;);
+			}
+			
+		} catch(Exception e) {
+    			log.warn(&quot;addEuroConversionfromFixer(!) &quot; + e);
+		}
+	}
+}
+
+
+/**
+ * filter and append to the global lists of apartments the corresponding ones.
+ * It creates new Json elements and fill them with new data
+ * 
+ * @param  jcountry the Json object containing all the info about a City and its apartments
+ */
+void appendToApartmentLists(JSONObject jcountry){
+	JSONObject jcountryRecommended = new JSONObject(jcountry.toString());
+     JSONObject jcountryGoodInvestment = new JSONObject(jcountry.toString());
+	jcountryRecommended.remove(&quot;apartments&quot;);
+	jcountryGoodInvestment.remove(&quot;apartments&quot;);
+
+	//Creates new array os Apartments depending on the filtes
+	JSONArray arrayApartmentsRecom = new JSONArray();
+	JSONArray arrayApartmentsGoodIn = new JSONArray();	
+	for (apartment : jcountry.getJSONArray(&quot;apartments&quot;)){
+		try {
+			String weather = jcountry.getJSONArray(&quot;weather&quot;).getJSONObject(0).getString(&quot;main&quot;);
+			apartment.put(&quot;Recommended&quot;, &quot;no&quot;); //Update also the original list
+			apartment.put(&quot;Good Investment&quot;, &quot;no&quot;);
+			if (apartment.getString(&quot;apartmentType&quot;).contains(&quot;Rental&quot;) == true) {
+				if ((weather.contains(&quot;Rain&quot;) == false) &amp;&amp; (weather.contains(&quot;unknow&quot;) == false)){
+					apartment.put(&quot;Recommended&quot;, &quot;yes&quot;);
+					arrayApartmentsRecom.put(apartment);
+				}
+			}else { //&apos;Sale&apos; or &apos;Both&apos; attributes
+				apartment.put(&quot;Good Investment&quot;, &quot;yes&quot;);
+				arrayApartmentsGoodIn.put(apartment);
+			}
+		} catch(Exception e) {
+    			log.warn(&quot;appendToApartmentLists(!) &quot; + e);
+		}
+	}
+	
+	// add to the lists the updated apartments organized by cities
+	jcountryRecommended.put(&quot;apartments&quot;, arrayApartmentsRecom);
+	jcountryGoodInvestment.put(&quot;apartments&quot;, arrayApartmentsGoodIn);
+	jRecommendedApartments.put(jcountryRecommended);
+	jGoodInvestmentApartments.put(jcountryGoodInvestment);
+}
+
+
+// Run over all the cities and append the weather and euro conversion information
+//- Generates a list for each apartment in non-raining area and has “Rental” apartmentType attribute, with a new field “Recommended”
+//- Generates a list for each apartment with “Sale” or “Both” apartmentType attributes, with a new field “Good Investment”
+for (int i = 0; i &lt; arrayCountries.length(); i++){
+	JSONObject jcountry = arrayCountries.getJSONObject(i);
+	addWeatherfromOpenWeather(jcountry);
+	addEuroConversionfromFixer(jcountry);
+     appendToApartmentLists(jcountry);	
+}
+
+//@TODO order Apartments by apartmentSize from jRecommendedApartments and jGoodInvestmentApartments
+//e.g. by converting JSONarrays to a Java Collection Arraylist, then using Collections.sort() with a custom comparator by apartmentSize property
+
+vars.put(&quot;RecommendedApartments&quot;, jRecommendedApartments.toString());
+vars.put(&quot;GoodInvestmentApartments&quot;, jGoodInvestmentApartments.toString());
+vars.put(&quot;listCountries_1&quot;, arrayCountries.toString()); // to keep the orignal list with all the info
+</stringProp>
+          <stringProp name="BeanShellSampler.filename"></stringProp>
+          <stringProp name="BeanShellSampler.parameters"></stringProp>
+          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
+        </BeanShellSampler>
+        <hashTree/>
+        <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
+          <boolProp name="displayJMeterProperties">false</boolProp>
+          <boolProp name="displayJMeterVariables">true</boolProp>
+          <boolProp name="displaySystemProperties">false</boolProp>
+        </DebugSampler>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
